@@ -37,7 +37,7 @@ class Project(Base):
     # Relationships
     team = relationship("Team", back_populates="projects", foreign_keys=[team_id])
     creator = relationship("User", foreign_keys=[created_by])
-    meetings = relationship("Meeting", back_populates="project")
+    meetings = relationship("Meeting", back_populates="project", cascade="all, delete-orphan", passive_deletes=True)
 
     def __repr__(self):
         return f"<Project {self.name}>"

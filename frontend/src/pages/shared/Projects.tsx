@@ -189,6 +189,7 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [reqFile, setReqFile] = useState<File | null>(null);
   const [form, setForm] = useState({ name: "", description: "" });
 
@@ -230,10 +231,14 @@ export default function Projects() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this project? This cannot be undone.")) return;
+    setDeleteError("");
     try {
       await projectsApi.delete(id);
       setProjects((prev) => prev.filter((p) => p.id !== id));
-    } catch (err) { console.error(err); }
+    } catch (err: any) {
+      console.error(err);
+      setDeleteError(err.response?.data?.detail || "Failed to delete project. It may have linked data.");
+    }
   };
 
   const handleAnalyze = async (id: string) => {
@@ -263,6 +268,22 @@ export default function Projects() {
           </button>
         )}
       </div>
+
+      {/* Delete error banner */}
+      {deleteError && (
+        <div
+          style={{
+            background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+            borderRadius: 10, padding: "12px 16px", color: "#f87171", fontSize: 13,
+            marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12
+          }}
+        >
+          <span>⚠ {deleteError}</span>
+          <button onClick={() => setDeleteError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#f87171" }}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Grid */}
       {isLoading ? (
