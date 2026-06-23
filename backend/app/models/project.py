@@ -20,9 +20,9 @@ class Project(Base):
     deadline = Column(Date, nullable=True)
     budget = Column(Numeric(12, 2), nullable=True)
 
-    # team_id is now nullable — project is created standalone, then assigned via team
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True)
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    # team_id is nullable — project is created standalone, then assigned via team
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

@@ -101,13 +101,9 @@ class ProjectService:
 
     @staticmethod
     def delete_project(project_id: UUID, manager_id: UUID, db: Session) -> None:
-        from app.models.team import Team
         project = ProjectService.get_project(project_id, db)
         if str(project.created_by) != str(manager_id):
             raise HTTPException(status_code=403, detail="Not authorized to delete this project.")
-        # Nullify any teams that have this project assigned (to avoid FK constraint)
-        db.query(Team).filter(Team.project_id == project_id).update({"project_id": None})
-        db.commit()
         # Clean up file if exists
         if project.requirements_file_path and os.path.exists(project.requirements_file_path):
             try:

@@ -39,9 +39,9 @@ class Meeting(Base):
     file_size = Column(Integer, nullable=True)  # in bytes
     status = Column(String(50), nullable=False, default=MeetingStatus.UPLOADED.value)
     duration_seconds = Column(Integer, nullable=True)  # for audio files
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
-    uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+    uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     meeting_date = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

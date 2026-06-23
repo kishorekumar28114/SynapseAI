@@ -26,7 +26,7 @@ class Task(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     meeting_id = Column(UUID(as_uuid=True), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False)
-    assignee_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    assignee_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
     # Use String to avoid SAEnum type mismatch with existing DB uppercase enum labels
