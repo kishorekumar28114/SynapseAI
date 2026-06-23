@@ -3,15 +3,16 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
+import re
 
 from app.database.session import get_db
 from app.auth.dependencies import require_team_lead, get_current_active_user
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.meeting import Meeting, MeetingStatus
 from app.ai.processor import process_meeting
-from app.ai.retrieval import RetrievalService
+from app.ai.retrieval import ManagerRetrievalService, EmployeeRetrievalService
 from app.ai.ollama_client import ollama_client
-from app.ai.prompts import AI_CHAT_PROMPT
+from app.ai.prompts import MANAGER_CHAT_PROMPT, EMPLOYEE_CHAT_PROMPT
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -32,7 +33,6 @@ async def trigger_ai_processing(
     if meeting.status == MeetingStatus.COMPLETED:
         raise HTTPException(status_code=409, detail="Meeting has already been processed.")
 
-    # Run processing in background
     background_tasks.add_task(process_meeting, meeting.id, db)
 
     return {
@@ -70,11 +70,14 @@ async def ollama_health():
     }
 
 
-# ── Chat ─────────────────────────────────────────────────────────────────────
+# ── Chat ──────────────────────────────────────────────────────────────────────
 
 class ChatRequest(BaseModel):
     question: str
-    team_id: UUID
+    # Manager: must supply project_id; team_id optional
+    # Employee: must supply team_id; project_id optional
+    project_id: Optional[UUID] = None
+    team_id: Optional[UUID] = None
 
 
 class ChatResponse(BaseModel):
@@ -88,23 +91,44 @@ async def ai_chat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """AI Assistant chat endpoint with DB context retrieval."""
-    # Build context
-    project_context = RetrievalService.get_project_context(data.team_id, db)
-    meetings_context = RetrievalService.get_recent_meetings_context(data.team_id, db)
-    tasks_context = RetrievalService.get_tasks_context(data.team_id, db)
+    """Role-aware AI chat endpoint.
+    - Manager: needs project_id → gets cross-team strategic view.
+    - Employee/Team Lead: needs team_id → gets personal + team view.
+    """
+    is_manager = current_user.role == UserRole.MANAGER
 
-    prompt = AI_CHAT_PROMPT.format(
-        project_context=project_context,
-        meetings_context=meetings_context,
-        tasks_context=tasks_context,
-        question=data.question,
-    )
+    if is_manager:
+        if not data.project_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Managers must supply a project_id to chat."
+            )
+        ctx = ManagerRetrievalService.build_context(data.project_id, db)
+        prompt = MANAGER_CHAT_PROMPT.format(
+            project=ctx["project"],
+            teams=ctx["teams"],
+            meetings_efficiency=ctx["meetings_efficiency"],
+            tasks_summary=ctx["tasks_summary"],
+            question=data.question,
+        )
+    else:
+        if not data.team_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Team members must supply a team_id to chat."
+            )
+        ctx = EmployeeRetrievalService.build_context(data.team_id, current_user.id, db)
+        prompt = EMPLOYEE_CHAT_PROMPT.format(
+            project=ctx["project"],
+            meetings=ctx["meetings"],
+            my_tasks=ctx["my_tasks"],
+            team_tasks=ctx["team_tasks"],
+            question=data.question,
+        )
 
     answer = await ollama_client.generate(prompt)
 
-    # Strip thinking tags from answer
-    import re
+    # Strip thinking tags if model emits them
     answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
 
     return ChatResponse(answer=answer)

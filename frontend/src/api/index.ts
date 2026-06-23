@@ -89,8 +89,8 @@ export const aiApi = {
     (await api.post(`/ai/process/${meetingId}`)).data,
   getStatus: async (meetingId: string) => (await api.get(`/ai/status/${meetingId}`)).data,
   health: async () => (await api.get("/ai/health")).data,
-  chat: async (question: string, team_id: string) =>
-    (await api.post("/ai/chat", { question, team_id })).data,
+  chat: async (payload: { question: string; project_id?: string; team_id?: string }) =>
+    (await api.post("/ai/chat", payload)).data,
 };
 
 export const analyticsApi = {
