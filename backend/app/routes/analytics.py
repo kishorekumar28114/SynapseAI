@@ -118,6 +118,35 @@ def get_meeting_analysis_detail(
 
     tasks = db.query(Task).filter(Task.meeting_id == meeting_id).all()
 
+    # Fallback: if no tasks in DB but raw response has them, parse from stored JSON
+    tasks_out = [
+        {
+            "id": str(t.id),
+            "title": t.title,
+            "description": t.description,
+            "priority": t.priority,
+            "status": t.status,
+            "deadline": str(t.deadline) if t.deadline else t.extracted_deadline_text,
+            "assignee": t.assignee.full_name if t.assignee else None,
+        }
+        for t in tasks
+    ]
+
+    if not tasks_out and analysis.raw_tasks_response:
+        raw_tasks = analysis.raw_tasks_response.get("tasks", [])
+        tasks_out = [
+            {
+                "id": f"raw-{i}",
+                "title": rt.get("title", "Untitled Task"),
+                "description": rt.get("description"),
+                "priority": rt.get("priority", "medium"),
+                "status": "pending",
+                "deadline": rt.get("deadline_text"),
+                "assignee": rt.get("assignee_name"),
+            }
+            for i, rt in enumerate(raw_tasks)
+        ]
+
     return {
         "summary": analysis.summary,
         "key_points": analysis.key_points,
@@ -132,16 +161,5 @@ def get_meeting_analysis_detail(
         "decisions_made": analysis.raw_summary_response.get("decisions_made", []) if analysis.raw_summary_response else [],
         "processing_time_seconds": analysis.processing_time_seconds,
         "model_used": analysis.model_used,
-        "tasks": [
-            {
-                "id": str(t.id),
-                "title": t.title,
-                "description": t.description,
-                "priority": t.priority,
-                "status": t.status,
-                "deadline": str(t.deadline) if t.deadline else t.extracted_deadline_text,
-                "assignee": t.assignee.full_name if t.assignee else None,
-            }
-            for t in tasks
-        ],
+        "tasks": tasks_out,
     }

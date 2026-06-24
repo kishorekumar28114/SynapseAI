@@ -59,7 +59,23 @@ class ProjectService:
 
     @staticmethod
     def get_projects_for_team(team_id: UUID, db: Session) -> List[Project]:
-        return db.query(Project).filter(Project.team_id == team_id).all()
+        from app.models.team import Team as TeamModel
+        # Get the team to find its assigned project (Team.project_id)
+        team = db.query(TeamModel).filter(TeamModel.id == team_id).first()
+        project_ids = set()
+
+        # Side 1: projects that have Project.team_id = this team
+        via_project = db.query(Project).filter(Project.team_id == team_id).all()
+        for p in via_project:
+            project_ids.add(p.id)
+
+        # Side 2: project assigned to this team via Team.project_id
+        if team and team.project_id:
+            project_ids.add(team.project_id)
+
+        if not project_ids:
+            return []
+        return db.query(Project).filter(Project.id.in_(project_ids)).all()
 
     @staticmethod
     def get_projects_for_manager(manager_id: UUID, db: Session) -> List[Project]:
@@ -67,18 +83,29 @@ class ProjectService:
 
     @staticmethod
     def get_projects_for_user(user_id: UUID, db: Session) -> List[Project]:
-        """Get all projects for the teams that a user belongs to."""
-        team_ids = [
-            tm.team_id
-            for tm in db.query(TeamMember).filter(TeamMember.user_id == user_id).all()
-        ]
+        """Get all projects for the teams that a user belongs to (both link directions)."""
+        from app.models.team import Team as TeamModel
+        team_members = db.query(TeamMember).filter(TeamMember.user_id == user_id).all()
+        team_ids = [tm.team_id for tm in team_members]
         if not team_ids:
             return []
-        return (
-            db.query(Project)
-            .filter(Project.team_id.in_(team_ids))
-            .all()
-        )
+
+        project_ids = set()
+
+        # Side 1: projects that have Project.team_id in user's teams
+        via_project = db.query(Project).filter(Project.team_id.in_(team_ids)).all()
+        for p in via_project:
+            project_ids.add(p.id)
+
+        # Side 2: projects assigned to user's teams via Team.project_id
+        teams = db.query(TeamModel).filter(TeamModel.id.in_(team_ids)).all()
+        for t in teams:
+            if t.project_id:
+                project_ids.add(t.project_id)
+
+        if not project_ids:
+            return []
+        return db.query(Project).filter(Project.id.in_(project_ids)).all()
 
     @staticmethod
     def update_project(project_id: UUID, data: ProjectUpdate, db: Session) -> Project:

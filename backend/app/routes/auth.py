@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -54,3 +55,25 @@ async def google_login(
 def get_me(current_user: User = Depends(get_current_active_user)):
     """Return the currently authenticated user's profile."""
     return UserOut.model_validate(current_user)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+def change_password(
+    data: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Allow any authenticated user to change their own password."""
+    from app.auth.hashing import verify_password, hash_password
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
+    current_user.hashed_password = hash_password(data.new_password)
+    db.commit()
+    return {"message": "Password changed successfully."}

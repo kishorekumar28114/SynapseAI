@@ -12,10 +12,15 @@ TRANSCRIPT:
 PROJECT CONTEXT (if available):
 {project_context}
 
+IMPORTANT INSTRUCTIONS:
+- "key_points" should ONLY contain high-level meeting INSIGHTS, DECISIONS, and DISCUSSION TOPICS.
+- Do NOT put task assignments, action items, or "Person X will do Y" statements in key_points.
+- Those belong in a separate task extraction step, NOT here.
+
 Respond with ONLY valid JSON in this exact format:
 {{
   "summary": "A comprehensive 2-4 paragraph executive summary of the meeting",
-  "key_points": ["key point 1", "key point 2", "key point 3"],
+  "key_points": ["High-level insight or decision 1", "Key topic discussed 2", "Important outcome 3"],
   "decisions_made": ["decision 1", "decision 2"],
   "topics_discussed": ["topic 1", "topic 2"],
   "meeting_type": "planning|review|standup|brainstorming|retrospective|other"
@@ -24,18 +29,27 @@ Respond with ONLY valid JSON in this exact format:
 
 
 TASK_EXTRACTION_PROMPT = """
-You are an expert at extracting action items from meeting transcripts.
+You are an expert at extracting action items and task assignments from meeting transcripts.
 
 TRANSCRIPT:
 {transcript}
 
-Extract ALL tasks, action items, and responsibilities mentioned. For each task, identify:
-- Who was assigned (match to these team members if possible: {team_members})
-- The task description
-- Any deadline mentioned
-- Priority level
+TEAM MEMBERS: {team_members}
 
-Respond with ONLY valid JSON:
+Your job is to find EVERY concrete task, action item, or responsibility that was assigned or agreed upon.
+Look for phrases like: "will handle", "is responsible for", "needs to", "should", "assigned to", "will work on", "will do", "take care of".
+
+For EACH task found, provide:
+- title: A short, clear task title (max 10 words)
+- description: Full description of what needs to be done
+- assignee_name: The team member's name who is responsible (or null if unassigned)
+- deadline_text: Any deadline or timeframe mentioned in the transcript (or null)
+- deadline_date: Parsed date in YYYY-MM-DD format if possible (or null)
+- priority: "low", "medium", "high", or "critical" based on urgency
+
+If there are NO tasks in the transcript, return an empty tasks array.
+
+Respond with ONLY valid JSON — no extra text, no markdown, just the JSON object:
 {{
   "tasks": [
     {{

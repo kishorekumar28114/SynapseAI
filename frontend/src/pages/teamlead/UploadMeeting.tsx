@@ -2,14 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, File, X, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import { DashboardLayout } from "../../layouts/DashboardLayout";
-import { meetingsApi, teamsApi } from "../../api";
-import type { Team } from "../../types";
+import { meetingsApi, teamsApi, projectsApi } from "../../api";
+import type { Team, Project } from "../../types";
 
 const ALLOWED_EXTENSIONS = ["mp3", "wav", "m4a", "ogg", "pdf", "docx", "txt"];
 
 export default function UploadMeeting() {
   const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [form, setForm] = useState({ title: "", team_id: "", project_id: "", description: "" });
   const [file, setFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -20,9 +21,23 @@ export default function UploadMeeting() {
   useEffect(() => {
     teamsApi.myTeams().then((t) => {
       setTeams(t);
-      if (t.length > 0) setForm((p) => ({ ...p, team_id: t[0].id }));
+      if (t.length > 0) {
+        const firstTeamId = t[0].id;
+        setForm((p) => ({ ...p, team_id: firstTeamId }));
+        // Load projects for the first team
+        projectsApi.listForTeam(firstTeamId).then(setProjects).catch(() => setProjects([]));
+      }
     }).catch(console.error);
   }, []);
+
+  // Reload projects when team changes
+  useEffect(() => {
+    if (!form.team_id) return;
+    projectsApi.listForTeam(form.team_id)
+      .then(setProjects)
+      .catch(() => setProjects([]));
+    setForm((p) => ({ ...p, project_id: "" }));
+  }, [form.team_id]);
 
   const handleFile = (f: File) => {
     const ext = f.name.split(".").pop()?.toLowerCase() || "";
@@ -55,6 +70,7 @@ export default function UploadMeeting() {
     formData.append("title", form.title);
     formData.append("team_id", form.team_id);
     if (form.description) formData.append("description", form.description);
+    if (form.project_id) formData.append("project_id", form.project_id);
 
     setIsUploading(true);
     setError("");
@@ -156,6 +172,21 @@ export default function UploadMeeting() {
                   {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                   {teams.length === 0 && <option value="">No teams available</option>}
                 </select>
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <label className="form-label">Project <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
+                <select
+                  className="form-input"
+                  value={form.project_id}
+                  onChange={(e) => setForm((p) => ({ ...p, project_id: e.target.value }))}
+                >
+                  <option value="">— No project —</option>
+                  {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                {projects.length === 0 && form.team_id && (
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>No projects assigned to this team yet.</p>
+                )}
               </div>
 
               <div style={{ marginBottom: 24 }}>
