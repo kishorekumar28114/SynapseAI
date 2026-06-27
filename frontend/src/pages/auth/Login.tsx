@@ -70,7 +70,7 @@ export default function Login() {
   });
 
   return (
-    <div className="auth-page">
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
       {/* Animated background orbs */}
       <div style={{
         position: "fixed", top: "8%", left: "3%", width: 500, height: 500,
@@ -87,7 +87,7 @@ export default function Login() {
         animation: "pulse 6s ease-in-out 2s infinite",
       }} />
 
-      <div className="auth-card animate-fade-in" style={{ position: "relative", zIndex: 1 }}>
+      <div className="w-full max-w-[420px] p-8 bg-card rounded-2xl shadow-2xl border border-border/50 animate-fade-in relative z-10 m-4">
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{
@@ -171,7 +171,11 @@ export default function Login() {
               {isGoogleLoading ? "Signing in with Google..." : "Continue with Google"}
             </button>
 
-            <div className="divider" style={{ marginBottom: 20 }}>or sign in with email</div>
+            <div className="flex items-center text-xs text-muted-foreground mb-5 uppercase tracking-wider font-semibold">
+              <div className="flex-1 h-px bg-border"></div>
+              <span className="px-3">or sign in with email</span>
+              <div className="flex-1 h-px bg-border"></div>
+            </div>
           </>
         )}
 
@@ -190,7 +194,7 @@ export default function Login() {
 
           {/* Identifier */}
           <div style={{ marginBottom: 14 }}>
-            <label className="form-label">
+            <label className="block text-sm font-medium mb-1.5 text-foreground">
               {loginMode === "manager" ? "Email address" : "Username"}
             </label>
             <div style={{ position: "relative" }}>
@@ -205,7 +209,7 @@ export default function Login() {
                 type={loginMode === "manager" ? "email" : "text"}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="form-input"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                 style={{ paddingLeft: 38 }}
                 placeholder={loginMode === "manager" ? "you@company.com" : "your.username"}
                 required
@@ -217,7 +221,7 @@ export default function Login() {
 
           {/* Password */}
           <div style={{ marginBottom: 22 }}>
-            <label className="form-label">Password</label>
+            <label className="block text-sm font-medium mb-1.5 text-foreground">Password</label>
             <div style={{ position: "relative" }}>
               <div style={{
                 position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
@@ -230,7 +234,7 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="form-input"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                 style={{ paddingLeft: 38, paddingRight: 42 }}
                 placeholder="••••••••"
                 required
@@ -252,8 +256,8 @@ export default function Login() {
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: "100%", justifyContent: "center", height: 44, fontSize: 14 }}
+            className="w-full inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            style={{ height: 44 }}
             disabled={isLoading}
           >
             {isLoading ? (

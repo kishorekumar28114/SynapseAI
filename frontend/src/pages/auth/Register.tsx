@@ -59,14 +59,14 @@ export default function Register() {
   ];
 
   return (
-    <div className="auth-page">
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
       <div style={{
         position: "fixed", top: "10%", right: "10%", width: 400, height: 400,
         borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.1), transparent)",
         filter: "blur(40px)", pointerEvents: "none"
       }} />
 
-      <div className="auth-card animate-fade-in" style={{ maxWidth: 480 }}>
+      <div className="w-full max-w-[480px] p-8 bg-card rounded-2xl shadow-2xl border border-border/50 animate-fade-in relative z-10 m-4">
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{
@@ -98,7 +98,7 @@ export default function Register() {
           {/* Text Fields */}
           {fields.map((field) => (
             <div key={field.name} style={{ marginBottom: 16 }}>
-              <label className="form-label">{field.label}</label>
+              <label className="block text-sm font-medium mb-1.5 text-foreground">{field.label}</label>
               <div style={{ position: "relative" }}>
                 <div style={{
                   position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
@@ -112,7 +112,7 @@ export default function Register() {
                   type={field.type}
                   value={form[field.name as keyof typeof form]}
                   onChange={handleChange}
-                  className="form-input"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                   style={{ paddingLeft: 36 }}
                   placeholder={field.placeholder}
                   required
@@ -123,7 +123,7 @@ export default function Register() {
 
           {/* Password */}
           <div style={{ marginBottom: 16 }}>
-            <label className="form-label">Password</label>
+            <label className="block text-sm font-medium mb-1.5 text-foreground">Password</label>
             <div style={{ position: "relative" }}>
               <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}>
                 <Lock size={15} />
@@ -134,7 +134,7 @@ export default function Register() {
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={handleChange}
-                className="form-input"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                 style={{ paddingLeft: 36, paddingRight: 40 }}
                 placeholder="Min 8 characters"
                 required
@@ -148,7 +148,7 @@ export default function Register() {
 
           {/* Confirm Password */}
           <div style={{ marginBottom: 24 }}>
-            <label className="form-label">Confirm Password</label>
+            <label className="block text-sm font-medium mb-1.5 text-foreground">Confirm Password</label>
             <div style={{ position: "relative" }}>
               <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}>
                 <Lock size={15} />
@@ -159,7 +159,7 @@ export default function Register() {
                 type={showPassword ? "text" : "password"}
                 value={form.confirm_password}
                 onChange={handleChange}
-                className="form-input"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                 style={{ paddingLeft: 36 }}
                 placeholder="Repeat password"
                 required
@@ -169,8 +169,8 @@ export default function Register() {
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: "100%", justifyContent: "center", height: 44, fontSize: 14 }}
+            className="w-full inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            style={{ height: 44 }}
             disabled={isLoading}
           >
             {isLoading ? (
@@ -181,9 +181,14 @@ export default function Register() {
           </button>
         </form>
 
-        <div className="divider" style={{ margin: "24px 0" }}>already have an account?</div>
+        <div className="flex items-center text-xs text-muted-foreground mb-5 mt-6 uppercase tracking-wider font-semibold">
+          <div className="flex-1 h-px bg-border"></div>
+          <span className="px-3">already have an account?</span>
+          <div className="flex-1 h-px bg-border"></div>
+        </div>
+        
         <p style={{ textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
-          <Link to="/login" style={{ color: "var(--accent-hover)", fontWeight: 600 }}>
+          <Link to="/login" className="text-primary hover:underline font-semibold">
             Sign in instead
           </Link>
         </p>

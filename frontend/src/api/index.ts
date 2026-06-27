@@ -31,6 +31,11 @@ export const authApi = {
     const res = await api.post("/auth/change-password", { current_password, new_password });
     return res.data;
   },
+
+  setPassword: async (new_password: string): Promise<{ message: string }> => {
+    const res = await api.post("/auth/set-password", { new_password });
+    return res.data;
+  },
 };
 
 export const teamsApi = {

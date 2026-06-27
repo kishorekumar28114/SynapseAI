@@ -130,6 +130,22 @@ export function Sidebar() {
               <ChevronRight size={12} style={{ opacity: 0.4 }} />
             </NavLink>
           ))}
+          
+          <button 
+            onClick={handleLogout} 
+            className="sidebar-nav-item"
+            style={{ 
+              width: "100%", 
+              background: "none", 
+              border: "none", 
+              color: "#f87171", 
+              cursor: "pointer",
+              marginTop: "8px" 
+            }}
+          >
+            <span style={{ flexShrink: 0 }}><LogOut size={16} /></span>
+            <span style={{ flex: 1, textAlign: "left" }}>Logout</span>
+          </button>
         </div>
       </div>
 
@@ -178,10 +194,6 @@ export function Sidebar() {
               </div>
             </div>
           </div>
-          <button onClick={handleLogout} className="btn btn-secondary" style={{ width: "100%", justifyContent: "center", gap: 8 }}>
-            <LogOut size={14} />
-            Sign out
-          </button>
         </div>
       )}
     </nav>

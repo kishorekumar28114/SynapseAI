@@ -61,6 +61,9 @@ class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
 
+class SetPasswordRequest(BaseModel):
+    new_password: str
+
 
 @router.post("/change-password", status_code=status.HTTP_200_OK)
 def change_password(
@@ -70,10 +73,26 @@ def change_password(
 ):
     """Allow any authenticated user to change their own password."""
     from app.auth.hashing import verify_password, hash_password
-    if not verify_password(data.current_password, current_user.hashed_password):
+    if not verify_password(data.current_password, current_user.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect.")
     if len(data.new_password) < 6:
         raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
-    current_user.hashed_password = hash_password(data.new_password)
+    current_user.password_hash = hash_password(data.new_password)
     db.commit()
     return {"message": "Password changed successfully."}
+
+@router.post("/set-password", status_code=status.HTTP_200_OK)
+def set_password(
+    data: SetPasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Allow Google managers without a password to set one."""
+    from app.auth.hashing import hash_password
+    if current_user.password_hash is not None:
+        raise HTTPException(status_code=400, detail="Account already has a password. Use change-password instead.")
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
+    current_user.password_hash = hash_password(data.new_password)
+    db.commit()
+    return {"message": "Password set successfully."}

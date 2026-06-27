@@ -100,7 +100,7 @@ async def upload_requirements(
 async def analyze_project(
     project_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_manager),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Trigger AI analysis of the project requirements. Returns difficulty, budget, time estimates."""
     project = await ProjectService.analyze_project(project_id, db)

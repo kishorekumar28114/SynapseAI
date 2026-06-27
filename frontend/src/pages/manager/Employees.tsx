@@ -1,42 +1,31 @@
-import { useState, useEffect } from "react";
-import { UserPlus, Mail, Shield, X, CheckCircle, Copy, Trash2, UserX } from "lucide-react";
-import { DashboardLayout } from "../../layouts/DashboardLayout";
-import { employeesApi } from "../../api";
-import type { Employee } from "../../types";
-import { ROLE_LABELS } from "../../lib/constants";
-import { formatDate } from "../../lib/utils";
+import React, { useState, useEffect } from "react";
+import { UserPlus, Copy, Trash2, UserX, MoreHorizontal, Mail } from "lucide-react";
+import { employeesApi } from "@/api";
+import type { Employee } from "@/types";
+import { ROLE_LABELS } from "@/lib/constants";
+import { formatDate } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function Employees() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteResult, setInviteResult] = useState<{ username: string; temp_password: string } | null>(null);
+  
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
-  const [error, setError] = useState("");
-  const [form, setForm] = useState({ full_name: "", email: "", role: "team_member" });
+  const [inviteData, setInviteData] = useState({ full_name: "", email: "" });
+  const [inviteResult, setInviteResult] = useState<{ temp_password?: string, message?: string } | null>(null);
 
   const loadEmployees = () =>
     employeesApi.list().then(setEmployees).catch(console.error).finally(() => setIsLoading(false));
 
   useEffect(() => { loadEmployees(); }, []);
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsInviting(true);
-    setError("");
-    try {
-      const result = await employeesApi.invite(form);
-      setInviteResult({ username: result.username, temp_password: result.temp_password });
-      loadEmployees();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to invite employee.");
-    } finally {
-      setIsInviting(false);
-    }
-  };
-
   const handleDeactivate = async (id: string, name: string) => {
-    if (!window.confirm(`Deactivate ${name}? They will no longer be able to log in.`)) return;
+    if (!window.confirm(`Deactivate ${name}?`)) return;
     try {
       await employeesApi.deactivate(id);
       loadEmployees();
@@ -44,191 +33,159 @@ export default function Employees() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Permanently delete ${name}? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete ${name}?`)) return;
     try {
       await employeesApi.delete(id);
       loadEmployees();
     } catch (err) { console.error(err); }
   };
 
-  const copyToClipboard = (text: string) => navigator.clipboard.writeText(text);
+  const submitInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsInviting(true);
+    setInviteResult(null);
+    try {
+      const payload = { ...inviteData, role: "team_member" };
+      const res = await employeesApi.invite(payload);
+      setInviteResult({ temp_password: res.temp_password, message: res.message });
+      setInviteData({ full_name: "", email: "" });
+      loadEmployees();
+    } catch (err: any) {
+      console.error(err);
+      setInviteResult({ message: err.response?.data?.detail || "Failed to invite employee." });
+    } finally {
+      setIsInviting(false);
+    }
+  };
 
   return (
-    <DashboardLayout title="Employees" subtitle="Invite and manage your team members">
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{employees.length} employees</p>
-        <button onClick={() => { setShowInviteModal(true); setInviteResult(null); setError(""); }} className="btn btn-primary">
-          <UserPlus size={16} /> Invite Employee
-        </button>
+    <div className="flex flex-col gap-6 h-full">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">People Directory</h1>
+          <p className="text-muted-foreground mt-1">Manage your team members and access across projects.</p>
+        </div>
+        <Button onClick={() => setIsInviteOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite Employee
+        </Button>
       </div>
 
-      {/* Employees Table */}
-      <div className="card">
-        {isLoading ? (
-          <div style={{ padding: 24 }}>
-            {[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 52, marginBottom: 8, borderRadius: 8 }} />)}
+      <Card>
+        <CardHeader className="border-b bg-muted/20 pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">All Employees</CardTitle>
+            <Badge variant="secondary">{employees.length} Members</Badge>
           </div>
-        ) : employees.length === 0 ? (
-          <div style={{ padding: "60px", textAlign: "center" }}>
-            <UserPlus size={40} style={{ color: "var(--text-muted)", margin: "0 auto 16px" }} />
-            <h3 style={{ marginBottom: 8 }}>No employees yet</h3>
-            <p style={{ color: "var(--text-muted)", marginBottom: 20, fontSize: 13 }}>Invite your first team member</p>
-            <button onClick={() => setShowInviteModal(true)} className="btn btn-primary">
-              <UserPlus size={15} /> Invite Employee
-            </button>
-          </div>
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Employee</th>
-                <th>Role</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Joined</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-8 text-center text-muted-foreground animate-pulse">Loading directory...</div>
+          ) : employees.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">No employees found.</div>
+          ) : (
+            <div className="divide-y">
               {employees.map((emp) => (
-                <tr key={emp.id}>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: "50%",
-                        background: "linear-gradient(135deg, var(--accent), var(--violet))",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 12, fontWeight: 700, color: "white", flexShrink: 0
-                      }}>
-                        {emp.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13 }}>{emp.full_name}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>@{emp.username}</div>
+                <div key={emp.id} className="flex items-center justify-between p-4 hover:bg-muted/10 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {emp.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                    <div>
+                      <div className="font-medium">{emp.full_name}</div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Mail className="h-3 w-3" /> {emp.email || "No email"}
                       </div>
                     </div>
-                  </td>
-                  <td>
-                    <span className="badge" style={{ background: "var(--accent-subtle)", color: "var(--accent-hover)", border: "1px solid rgba(99,102,241,0.3)" }}>
-                      {ROLE_LABELS[emp.role as keyof typeof ROLE_LABELS]}
-                    </span>
-                  </td>
-                  <td style={{ fontSize: 13 }}>{emp.email || "—"}</td>
-                  <td>
-                    <span style={{
-                      display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
-                      padding: "3px 10px", borderRadius: 20,
-                      background: emp.is_active ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)",
-                      color: emp.is_active ? "#34d399" : "#f87171",
-                      border: `1px solid ${emp.is_active ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}`,
-                    }}>
-                      {emp.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td style={{ fontSize: 12 }}>{formatDate(emp.created_at)}</td>
-                  <td>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {emp.is_active && (
-                        <button
-                          onClick={() => handleDeactivate(emp.id, emp.full_name)}
-                          title="Deactivate"
-                          style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 6, padding: "5px 8px", cursor: "pointer", color: "#fbbf24", display: "flex", alignItems: "center" }}
-                        >
-                          <UserX size={13} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(emp.id, emp.full_name)}
-                        title="Delete permanently"
-                        style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 6, padding: "5px 8px", cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center" }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: "24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between" }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700 }}>
-                {inviteResult ? "Employee Invited!" : "Invite Employee"}
-              </h3>
-              <button onClick={() => setShowInviteModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            {inviteResult ? (
-              <div style={{ padding: 24 }}>
-                <div style={{ textAlign: "center", marginBottom: 24 }}>
-                  <CheckCircle size={48} style={{ color: "#34d399", margin: "0 auto 12px" }} />
-                  <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
-                    Credentials generated. An onboarding email was sent.
-                  </p>
-                </div>
-                <div style={{ background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
-                  {[
-                    { label: "Username", value: inviteResult.username },
-                    { label: "Temp Password", value: inviteResult.temp_password },
-                  ].map(({ label, value }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
-                      <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <code style={{ fontFamily: "monospace", fontSize: 13, color: "var(--text-primary)", background: "var(--accent-subtle)", padding: "2px 10px", borderRadius: 6 }}>
-                          {value}
-                        </code>
-                        <button onClick={() => copyToClipboard(value)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-                          <Copy size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={() => { setShowInviteModal(false); setInviteResult(null); }} className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 20 }}>
-                  Done
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleInvite} style={{ padding: 24 }}>
-                {error && (
-                  <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "10px 14px", marginBottom: 20, color: "#f87171", fontSize: 13 }}>{error}</div>
-                )}
-                {[
-                  { name: "full_name", label: "Full Name", type: "text", placeholder: "John Smith" },
-                  { name: "email", label: "Email Address", type: "email", placeholder: "john@company.com" },
-                ].map((field) => (
-                  <div key={field.name} style={{ marginBottom: 16 }}>
-                    <label className="form-label">{field.label} *</label>
-                    <input className="form-input" type={field.type} value={form[field.name as keyof typeof form]} onChange={(e) => setForm((p) => ({ ...p, [field.name]: e.target.value }))} placeholder={field.placeholder} required />
                   </div>
-                ))}
-                <div style={{ marginBottom: 24 }}>
-                  <label className="form-label">Role *</label>
-                  <select className="form-input" value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}>
-                    <option value="team_member">Team Member</option>
-                    <option value="team_lead">Team Lead</option>
-                  </select>
+
+                  <div className="flex items-center gap-6">
+                    <Badge variant="outline">{ROLE_LABELS[emp.role as keyof typeof ROLE_LABELS]}</Badge>
+                    <Badge variant={emp.is_active ? "success" : "destructive"}>
+                      {emp.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                    
+                    <div className="text-sm text-muted-foreground hidden md:block">
+                      Joined {formatDate(emp.created_at)}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {emp.is_active && (
+                        <Button variant="ghost" size="icon" onClick={() => handleDeactivate(emp.id, emp.full_name)}>
+                          <UserX className="h-4 w-4 text-warning" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(emp.id, emp.full_name)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <button type="button" onClick={() => setShowInviteModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isInviting}>
-                    {isInviting ? "Inviting..." : <><UserPlus size={15} /> Invite</>}
-                  </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Invite Employee Modal */}
+      {isInviteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-md shadow-2xl">
+            <CardHeader>
+              <CardTitle>Invite New Employee</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {inviteResult ? (
+                <div className="space-y-4">
+                  <div className={`rounded-md p-4 border ${inviteResult.temp_password ? 'bg-success/20 text-success-foreground border-success/50' : 'bg-destructive/20 text-destructive border-destructive/50'}`}>
+                    <p className="font-semibold">{inviteResult.message}</p>
+                    {inviteResult.temp_password && (
+                      <>
+                        <p className="mt-2 text-sm">Temporary Password:</p>
+                        <div className="mt-1 font-mono bg-background p-2 rounded flex justify-between items-center text-foreground">
+                          {inviteResult.temp_password}
+                          <Button variant="ghost" size="icon" onClick={() => navigator.clipboard.writeText(inviteResult.temp_password || '')}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <Button className="w-full" onClick={() => { setIsInviteOpen(false); setInviteResult(null); }}>Done</Button>
                 </div>
-              </form>
-            )}
-          </div>
+              ) : (
+                <form onSubmit={submitInvite} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Full Name</label>
+                    <Input 
+                      placeholder="E.g. Jane Doe" 
+                      value={inviteData.full_name} 
+                      onChange={e => setInviteData({ ...inviteData, full_name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email Address</label>
+                    <Input 
+                      type="email"
+                      placeholder="jane@company.com" 
+                      value={inviteData.email} 
+                      onChange={e => setInviteData({ ...inviteData, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button type="button" variant="ghost" onClick={() => setIsInviteOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isInviting}>
+                      {isInviting ? "Inviting..." : "Send Invite"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
-    </DashboardLayout>
+    </div>
   );
 }
